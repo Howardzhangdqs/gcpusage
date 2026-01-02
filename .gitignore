@@ -1,0 +1,25 @@
+# Dependencies
+node_modules
+bun.lockb
+
+# Build output
+dist
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+bun.lock

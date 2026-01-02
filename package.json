@@ -1,0 +1,19 @@
+{
+  "name": "glm-usage-monitor",
+  "version": "1.0.0",
+  "description": "GLM Coding Plan usage monitor CLI tool",
+  "type": "module",
+  "bin": {
+    "glm-usage": "./dist/cli.js"
+  },
+  "scripts": {
+    "start": "bun run src/cli.ts",
+    "build": "bun build src/cli.ts --outdir dist --target bun",
+    "dev": "bun --watch src/cli.ts"
+  },
+  "keywords": ["glm", "usage", "monitor", "cli"],
+  "license": "MIT",
+  "dependencies": {
+    "cli-table3": "^0.6.5"
+  }
+}
