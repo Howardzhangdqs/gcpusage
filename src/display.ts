@@ -57,7 +57,7 @@ export const displayTokenFull = (quotaData: { limits?: QuotaLimit[] }): void => 
     return `${num.toLocaleString()}`;
   };
 
-  process.stdout.write(`${formatNumber(used)},${formatNumber(total)},${formatNumber(remaining)},${percentage.toFixed(2)}%`);
+  process.stdout.write(`\r${formatNumber(used)},${formatNumber(total)},${formatNumber(remaining)},${percentage.toFixed(2)}%`);
 };
 
 /**
@@ -192,44 +192,18 @@ export const displayToolUsage = (toolData: ToolUsage[]): void => {
 };
 
 /**
- * 显示所有信息
- */
-export const displayAll = (
-  modelData: ModelUsage[],
-  toolData: ToolUsage[],
-  quotaData: { limits?: QuotaLimit[] }
-): void => {
-  displayTokenUsage(quotaData);
-  displayMcpUsage(quotaData);
-  displayModelUsage(modelData);
-  displayToolUsage(toolData);
-};
-
-/**
  * 根据模式显示对应内容
  */
 export const displayByMode = (
   mode: DisplayMode,
-  modelData: ModelUsage[],
-  toolData: ToolUsage[],
+  _modelData: ModelUsage[],
+  _toolData: ToolUsage[],
   quotaData: { limits?: QuotaLimit[] },
   hourlyTokens?: number[]
 ): void => {
   switch (mode) {
     case 'token':
       displayTokenUsage(quotaData);
-      break;
-    case 'mcp':
-      displayMcpUsage(quotaData);
-      break;
-    case 'model':
-      displayModelUsage(modelData);
-      break;
-    case 'tool':
-      displayToolUsage(toolData);
-      break;
-    case 'all':
-      displayAll(modelData, toolData, quotaData);
       break;
     case 'hourly':
       if (hourlyTokens) {

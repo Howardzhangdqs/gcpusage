@@ -18,7 +18,7 @@ import { fetchAllData, fetchHourlyData, fetchRawData, getApiEndpoints } from './
 import { displayByMode, displayFull, displayHeader, displayHourlyUsage, displayTokenFull, displayTokenSimple } from './display.js';
 
 /**
- * 获取数据并显示（简化模式 - 默认 token 模式）
+ * 获取数据并显示（简化模式 - 默认 token 模式、token-full 模式）
  */
 const fetchAndDisplaySimple = async (
   options: Options,
@@ -35,8 +35,12 @@ const fetchAndDisplaySimple = async (
       endTime
     );
 
-    // 简化显示：只打印百分比，使用 \r 回到行首
-    displayTokenSimple(quotaData);
+    // 根据模式选择显示方式
+    if (options.mode === 'token-full') {
+      displayTokenFull(quotaData);
+    } else {
+      displayTokenSimple(quotaData);
+    }
 
   } catch (error) {
     process.stdout.write(`\r${colors.red}错误: ${(error as Error).message}${colors.reset}  `);
@@ -82,25 +86,10 @@ const fetchAndDisplay = async (
 };
 
 /**
- * 判断是否为简化模式（默认 token 模式且非 once）
+ * 判断是否为简化模式（默认 token 模式、token-full 模式且非 once）
  */
 const isSimpleMode = (options: Options): boolean => {
-  return options.mode === 'token' && !options.once;
-};
-
-/**
- * 获取并显示 token-full 数据
- */
-const fetchAndDisplayTokenFull = async (
-  authToken: string
-): Promise<void> => {
-  try {
-    const { endpoints } = getApiEndpoints(process.env.ANTHROPIC_BASE_URL!);
-    const { quotaData } = await fetchAllData(endpoints, authToken, '', '');
-    displayTokenFull(quotaData);
-  } catch (error) {
-    process.stdout.write(`${colors.red}错误: ${(error as Error).message}${colors.reset}`);
-  }
+  return (options.mode === 'token' || options.mode === 'token-full') && !options.once;
 };
 
 /**
@@ -166,12 +155,6 @@ const main = async (): Promise<void> => {
     const { endpoints } = getApiEndpoints(process.env.ANTHROPIC_BASE_URL!);
     const rawData = await fetchRawData(endpoints, authToken);
     displayFull(rawData);
-    return;
-  }
-
-  // token-full 模式：显示已用/总额/剩余/百分比
-  if (options.mode === 'token-full') {
-    await fetchAndDisplayTokenFull(authToken);
     return;
   }
 
