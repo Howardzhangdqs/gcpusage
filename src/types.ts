@@ -3,7 +3,7 @@
  */
 
 // 显示模式
-export type DisplayMode = 'token' | 'token-full' | 'mcp' | 'model' | 'tool' | 'all' | 'hourly' | 'raw' | 'full';
+export type DisplayMode = 'token' | 'token-full' | 'hourly' | 'raw' | 'full';
 
 // 命令行选项
 export interface Options {

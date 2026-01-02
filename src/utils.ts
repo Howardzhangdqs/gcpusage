@@ -71,10 +71,6 @@ export const printHelp = (): void => {
   console.log(`  -m, --mode <模式>    显示模式 (默认: token)`);
   console.log(`                       ${colors.cyan}token${colors.reset}       - Token通量占比`);
   console.log(`                       ${colors.cyan}token-full${colors.reset} - Token已用/总额/剩余/占比`);
-  console.log(`                       ${colors.cyan}mcp${colors.reset}         - 1个月MCP使用情况`);
-  console.log(`                       ${colors.cyan}model${colors.reset}       - 模型使用统计`);
-  console.log(`                       ${colors.cyan}tool${colors.reset}        - 工具使用统计`);
-  console.log(`                       ${colors.cyan}all${colors.reset}         - 显示所有信息`);
   console.log(`                       ${colors.cyan}hourly${colors.reset}      - 24小时每小时Token用量`);
   console.log(`                       ${colors.cyan}raw${colors.reset}         - 打印完整API响应(JSON)`);
   console.log(`                       ${colors.cyan}full${colors.reset}        - 完整数据可视化展示`);
