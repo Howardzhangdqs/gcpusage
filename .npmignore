@@ -1,0 +1,5 @@
+src/
+*.ts
+bun.lockb
+.env
+.DS_Store
