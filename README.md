@@ -81,16 +81,6 @@ gcpusage your-token-here token-full
 | `-i, --interval <秒>` | 刷新间隔（设置后才会自动刷新） |
 | `-h, --help` | 显示帮助信息 |
 
-## 发布
-
-```bash
-# 登录 npm
-npm login
-
-# 发布
-npm publish
-```
-
 ## License
 
 MIT
