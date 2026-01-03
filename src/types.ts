@@ -3,13 +3,23 @@
  */
 
 // 显示模式
-export type DisplayMode = 'token' | 'token-full' | 'hourly' | 'raw' | 'full';
+export type DisplayMode =
+  | 'token'
+  | 'token-full'
+  | 'token-total'
+  | 'token-used'
+  | 'token-remaining'
+  | 'token-percent'
+  | 'hourly'
+  | 'raw'
+  | 'full';
 
 // 命令行选项
 export interface Options {
   mode: DisplayMode;
   interval: number;
   once: boolean;
+  intervalSet: boolean;  // 用户是否设置了 -i 参数
 }
 
 // 配额限制项
@@ -20,6 +30,7 @@ export interface QuotaLimit {
   usage?: number;
   remaining?: number;
   usageDetails?: UsageDetail[];
+  nextResetTime?: number;
 }
 
 // 使用详情

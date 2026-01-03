@@ -2,6 +2,11 @@
 /**
  * GLM Coding Plan Usage Monitor
  * 实时监控 GLM Coding Plan 的使用情况
+ *
+ * CLI 用法:
+ *   gcpusage <token>              - 输出百分比
+ *   gcpusage <token> -m token-full - 完整信息
+ *   gcpusage <token> -i 5         - 自动刷新
  */
 
 import type { Options } from './types.js';
@@ -15,10 +20,21 @@ import {
   readEnv,
 } from './utils.js';
 import { fetchAllData, fetchHourlyData, fetchRawData, getApiEndpoints } from './api.js';
-import { displayByMode, displayFull, displayHeader, displayHourlyUsage, displayTokenFull, displayTokenSimple } from './display.js';
+import {
+  displayByMode,
+  displayFull,
+  displayHeader,
+  displayHourlyUsage,
+  displayTokenFull,
+  displayTokenSimple,
+  displayTokenTotal,
+  displayTokenUsed,
+  displayTokenRemaining,
+  displayTokenPercent,
+} from './display.js';
 
 /**
- * 获取数据并显示（简化模式 - 默认 token 模式、token-full 模式）
+ * 获取数据并显示（简化模式 - token 相关模式）
  */
 const fetchAndDisplaySimple = async (
   options: Options,
@@ -36,14 +52,28 @@ const fetchAndDisplaySimple = async (
     );
 
     // 根据模式选择显示方式
-    if (options.mode === 'token-full') {
-      displayTokenFull(quotaData);
-    } else {
-      displayTokenSimple(quotaData);
+    switch (options.mode) {
+      case 'token-full':
+        displayTokenFull(quotaData);
+        break;
+      case 'token-total':
+        displayTokenTotal(quotaData);
+        break;
+      case 'token-used':
+        displayTokenUsed(quotaData);
+        break;
+      case 'token-remaining':
+        displayTokenRemaining(quotaData);
+        break;
+      case 'token-percent':
+        displayTokenPercent(quotaData);
+        break;
+      default:
+        displayTokenSimple(quotaData);
     }
 
   } catch (error) {
-    process.stdout.write(`\r${colors.red}错误: ${(error as Error).message}${colors.reset}  `);
+    console.log(`${colors.red}错误: ${(error as Error).message}${colors.reset}`);
   }
 };
 
@@ -86,10 +116,18 @@ const fetchAndDisplay = async (
 };
 
 /**
- * 判断是否为简化模式（默认 token 模式、token-full 模式且非 once）
+ * 判断是否为简化模式（token 相关模式）
  */
 const isSimpleMode = (options: Options): boolean => {
-  return (options.mode === 'token' || options.mode === 'token-full') && !options.once;
+  const simpleModes = [
+    'token',
+    'token-full',
+    'token-total',
+    'token-used',
+    'token-remaining',
+    'token-percent',
+  ] as const;
+  return simpleModes.includes(options.mode as any);
 };
 
 /**
@@ -134,9 +172,46 @@ const main = async (): Promise<void> => {
     return;
   }
 
+  // 所有可用的模式名称
+  const modeNames = [
+    'token',
+    'token-full',
+    'token-total',
+    'token-used',
+    'token-remaining',
+    'token-percent',
+    'hourly',
+    'raw',
+    'full',
+  ];
+
+  let authToken: string;
+  let baseUrl: string;
+  let platform: string;
+
+  // 先解析参数（parseArgs 会识别模式名）
   const options = parseArgs();
-  const { baseUrl, authToken } = readEnv();
-  const { platform } = getApiEndpoints(baseUrl);
+
+  // 如果没有 -m 参数，检查第一个参数是否是 token（不是模式名）
+  const firstArg = args[0];
+  const hasTokenInEnv = process.env.ANTHROPIC_AUTH_TOKEN;
+  const firstArgIsMode = firstArg && modeNames.includes(firstArg);
+  const hasModeOption = args.includes('-m') || args.includes('--mode');
+
+  // 只有当：环境变量无 token AND 第一个参数不是模式名 AND 没有指定 -m 选项
+  if (firstArg && !firstArg.startsWith('-') && !hasTokenInEnv && !firstArgIsMode && !hasModeOption) {
+    // 第一个参数是 token
+    authToken = firstArg;
+    baseUrl = 'https://api.z.ai/api/anthropic';
+    if (process.env.ANTHROPIC_BASE_URL) {
+      baseUrl = process.env.ANTHROPIC_BASE_URL;
+    }
+    ({ platform } = getApiEndpoints(baseUrl));
+  } else {
+    // 从环境变量读取
+    ({ baseUrl, authToken } = readEnv());
+    ({ platform } = getApiEndpoints(baseUrl));
+  }
 
   // hourly 模式：只输出一次逗号分隔的数据
   if (options.mode === 'hourly') {
@@ -152,20 +227,25 @@ const main = async (): Promise<void> => {
 
   // full 模式：完整数据可视化展示
   if (options.mode === 'full') {
-    const { endpoints } = getApiEndpoints(process.env.ANTHROPIC_BASE_URL!);
+    const { endpoints } = getApiEndpoints(baseUrl);
     const rawData = await fetchRawData(endpoints, authToken);
     displayFull(rawData);
     return;
   }
 
-  // 简化模式
+  // 简化模式（token 相关模式）
   if (isSimpleMode(options)) {
-    // 循环刷新
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    while (true) {
+    // 如果设置了 -i 参数，则循环刷新；否则只输出一次
+    if (options.intervalSet) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      while (true) {
+        await fetchAndDisplaySimple(options, authToken);
+        await delay(options.interval * 1000);
+      }
+    } else {
       await fetchAndDisplaySimple(options, authToken);
-      await delay(options.interval * 1000);
     }
+    return;
   }
 
   // 完整模式

@@ -6,10 +6,6 @@ import Table from 'cli-table3';
 import type { DisplayMode, ModelUsage, QuotaLimit, ToolUsage } from './types.js';
 import { colors } from './utils.js';
 
-declare const process: {
-  stdout: { write: (str: string) => void };
-};
-
 /**
  * 获取 Token 限制信息
  */
@@ -29,11 +25,19 @@ export const getTokenPercentage = (quotaData: { limits?: QuotaLimit[] }): number
 };
 
 /**
- * 显示 Token 通量（简化版，用于默认模式）
+ * 格式化数字：如果超过100万显示M，否则显示完整数字
+ */
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`;
+  return `${num.toLocaleString()}`;
+};
+
+/**
+ * 显示 Token 百分比（token 模式）
  */
 export const displayTokenSimple = (quotaData: { limits?: QuotaLimit[] }): void => {
   const percentage = getTokenPercentage(quotaData);
-  process.stdout.write(`\r${percentage.toFixed(2)}%`);
+  console.log(percentage.toFixed(2));
 };
 
 /**
@@ -42,7 +46,7 @@ export const displayTokenSimple = (quotaData: { limits?: QuotaLimit[] }): void =
 export const displayTokenFull = (quotaData: { limits?: QuotaLimit[] }): void => {
   const limit = getTokenLimitInfo(quotaData);
   if (!limit) {
-    process.stdout.write('暂无数据');
+    console.log('暂无数据');
     return;
   }
 
@@ -51,48 +55,51 @@ export const displayTokenFull = (quotaData: { limits?: QuotaLimit[] }): void => 
   const remaining = limit.remaining || 0;
   const percentage = Math.max(Math.min(used / total * 100, 100), 0);
 
-  // 格式化数字：如果超过100万显示M，否则显示完整数字
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`;
-    return `${num.toLocaleString()}`;
-  };
-
-  process.stdout.write(`\r${formatNumber(used)},${formatNumber(total)},${formatNumber(remaining)},${percentage.toFixed(2)}%`);
+  console.log(`${formatNumber(used)},${formatNumber(total)},${formatNumber(remaining)},${percentage.toFixed(2)}%`);
 };
 
 /**
- * 渲染进度条
+ * 显示 Token 总量（token-total 模式）
  */
-const renderProgressBar = (percentage: number, width = 30): string => {
-  const filled = Math.round((percentage / 100) * width);
-  const empty = width - filled;
-
-  let color = colors.green;
-  if (percentage >= 80) color = colors.red;
-  else if (percentage >= 50) color = colors.yellow;
-
-  const bar = color + '█'.repeat(filled) + colors.dim + '░'.repeat(empty) + colors.reset;
-  return `[${bar}] ${percentage.toFixed(1)}%`;
-};
-
-/**
- * 显示 Token 通量（详细版）
- */
-export const displayTokenUsage = (quotaData: { limits?: QuotaLimit[] }): void => {
-  if (!quotaData?.limits) {
-    console.log(`${colors.yellow}暂无数据${colors.reset}`);
+export const displayTokenTotal = (quotaData: { limits?: QuotaLimit[] }): void => {
+  const limit = getTokenLimitInfo(quotaData);
+  if (!limit) {
+    console.log('暂无数据');
     return;
   }
+  console.log(formatNumber(limit.usage || 0));
+};
 
-  const tokenLimit = quotaData.limits.find(item => item.type === 'TOKENS_LIMIT');
-  if (tokenLimit) {
-    const percentage = tokenLimit.percentage || 0;
-    console.log('');
-    console.log(`${colors.bright}${colors.cyan}📊 5小时 Token 通量占比${colors.reset}`);
-    console.log(colors.dim + '─'.repeat(50) + colors.reset);
-    console.log(`  ${renderProgressBar(percentage)}`);
-    console.log('');
+/**
+ * 显示已用 Token（token-used 模式）
+ */
+export const displayTokenUsed = (quotaData: { limits?: QuotaLimit[] }): void => {
+  const limit = getTokenLimitInfo(quotaData);
+  if (!limit) {
+    console.log('暂无数据');
+    return;
   }
+  console.log(formatNumber(limit.currentValue || 0));
+};
+
+/**
+ * 显示剩余 Token（token-remaining 模式）
+ */
+export const displayTokenRemaining = (quotaData: { limits?: QuotaLimit[] }): void => {
+  const limit = getTokenLimitInfo(quotaData);
+  if (!limit) {
+    console.log('暂无数据');
+    return;
+  }
+  console.log(formatNumber(limit.remaining || 0));
+};
+
+/**
+ * 显示 Token 百分比（token-percent 模式）
+ */
+export const displayTokenPercent = (quotaData: { limits?: QuotaLimit[] }): void => {
+  const percentage = getTokenPercentage(quotaData);
+  console.log(percentage.toFixed(2));
 };
 
 /**
@@ -113,7 +120,7 @@ export const displayMcpUsage = (quotaData: { limits?: QuotaLimit[] }): void => {
     console.log('');
     console.log(`${colors.bright}${colors.magenta}📦 1个月 MCP 使用情况${colors.reset}`);
     console.log(colors.dim + '─'.repeat(50) + colors.reset);
-    console.log(`  ${renderProgressBar(percentage)}`);
+    console.log(`  ${percentage.toFixed(1)}%`);
     console.log(`  已使用: ${colors.cyan}${currentUsage}${colors.reset} / 总额: ${colors.cyan}${total}${colors.reset}`);
 
     if (mcpLimit.usageDetails && mcpLimit.usageDetails.length > 0) {
@@ -226,7 +233,7 @@ export const displayHeader = (platform: string, interval: number, mode: DisplayM
  * 显示近24小时每小时 Token 使用量
  */
 export const displayHourlyUsage = (tokens: number[]): void => {
-  process.stdout.write(tokens.join(','));
+  console.log(tokens.join(','));
 };
 
 /**
@@ -236,7 +243,7 @@ export const displayFull = (rawData: Record<string, unknown>): void => {
   const data = rawData as {
     modelUsage?: { data?: { x_time?: string[]; tokensUsage?: (number | null)[]; modelCallCount?: (number | null)[]; totalUsage?: { totalModelCallCount?: number; totalTokensUsage?: number } } };
     toolUsage?: { data?: { x_time?: string[]; networkSearchCount?: (number | null)[]; totalUsage?: { totalNetworkSearchCount?: number; toolDetails?: { modelName: string; totalUsageCount: number }[] } } };
-    quotaLimit?: { data?: { limits?: { type: string; percentage: number; currentValue?: number; usage?: number; remaining?: number }[] } };
+    quotaLimit?: { data?: { limits?: { type: string; percentage: number; currentValue?: number; usage?: number; remaining?: number; nextResetTime?: number }[] } };
   };
 
   // ========== 1. 配额限制 ==========
@@ -245,8 +252,8 @@ export const displayFull = (rawData: Record<string, unknown>): void => {
   console.log(`${colors.cyan}配额限制${colors.reset}`);
 
   const quotaTable = new Table({
-    head: ['类型', '进度', '已用', '总额', '剩余'],
-    colWidths: [20, 10],
+    head: ['类型', '进度', '已用', '总额', '剩余', '重置时间'],
+    // colWidths: [20, 10],
     wordWrap: true,
     style: {
       head: [],
@@ -254,14 +261,36 @@ export const displayFull = (rawData: Record<string, unknown>): void => {
     },
   });
 
-  limits.forEach((limit) => {
+  limits.reverse().forEach((limit) => {
     const isToken = limit.type === 'TOKENS_LIMIT';
     const label = isToken ? '📊 5小时 Token' : '📦 1个月 MCP';
     const percentage = Math.max(Math.min((limit.currentValue || 0) / limit.usage! * 100 || 0, 100), 0).toFixed(2) + "%";
     const used = isToken ? `${((limit.currentValue || 0) / 1000000).toFixed(2)}M` : `${limit.currentValue}`;
     const total = isToken ? `${(limit.usage! / 1000000).toFixed(0)}M` : `${limit.usage}`;
     const remaining = isToken ? `${(limit.remaining! / 1000000).toFixed(2)}M` : `${limit.remaining}`;
-    quotaTable.push([label, percentage, used, total, remaining]);
+
+    // 格式化重置时间
+    let resetTime = '-';
+    if (limit.nextResetTime) {
+      const resetDate = new Date(limit.nextResetTime);
+      const now = Date.now();
+      const diffMs = resetDate.getTime() - now;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffDays > 0) {
+        resetTime = `${diffDays}天${diffHours % 24}时后`;
+      } else if (diffHours > 0) {
+        resetTime = `${diffHours}时${diffMins % 60}分后`;
+      } else if (diffMins > 0) {
+        resetTime = `${diffMins}分钟后`;
+      } else if (diffMins < 0) {
+        resetTime = '已过期';
+      }
+    }
+
+    quotaTable.push([label, percentage, used, total, remaining, resetTime]);
   });
 
   console.log(quotaTable.toString());
@@ -275,7 +304,7 @@ export const displayFull = (rawData: Record<string, unknown>): void => {
 
   const totalTable = new Table({
     head: ['项目', '数值'],
-    colWidths: [20, 30],
+    // colWidths: [20, 30],
     style: {
       head: [],
       border: ['grey'],
@@ -300,7 +329,7 @@ export const displayFull = (rawData: Record<string, unknown>): void => {
   console.log(`${colors.yellow}24小时 Token 用量${colors.reset}`);
 
   const tokenTable = new Table({
-    head: ['时间', '用量'],
+    head: ['时间', '用量 (Tokens)'],
     // colWidths: [18, 15],
     style: {
       head: [],
@@ -308,17 +337,29 @@ export const displayFull = (rawData: Record<string, unknown>): void => {
     },
   });
 
+  // 格式化时间范围为 HH:00-HH:00 格式
+  const formatTimeRange = (timeStr: string): string => {
+    const timePart = timeStr.split(' ')[1] || '--:--';
+    const hourStr = timePart.split(':')[0];
+    const hour = parseInt(hourStr, 10);
+    if (isNaN(hour)) return '--:--';
+
+    const prevHour = (hour + 23) % 24; // 前一小时
+    const formatHour = (h: number) => String(h).padStart(2, '0');
+    return `${formatHour(prevHour)}:00 - ${formatHour(hour)}:00`;
+  };
+
   for (let i = 0; i < times.length; i++) {
     const time = times[i] || '';
     const token = tokens[i];
-    const shortTime = time.split(' ')[1] || '--:--';
+    const timeRange = formatTimeRange(time);
 
     if (token === null) {
-      tokenTable.push([shortTime, '-']);
+      tokenTable.push([timeRange, '-']);
     } else {
       // 每三位数加逗号
       const tokenK = `${token}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-      tokenTable.push([shortTime, tokenK]);
+      tokenTable.push([timeRange, tokenK]);
     }
   }
 

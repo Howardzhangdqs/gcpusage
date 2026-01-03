@@ -1,112 +1,94 @@
-# GLM Coding Plan Usage Monitor
+# gcpusage
 
-GLM Coding Plan 使用情况监控命令行工具。
-
-## 功能特性
-
-- 实时监控 5小时 Token 通量占比
-- Token 完整信息（已用/总额/剩余/占比）
-- 24小时每小时 Token 用量
-- 完整数据可视化展示
-- 自动刷新，可自定义间隔
+GLM Coding Plan 使用情况监控 CLI 工具。
 
 ## 安装
 
+### npm 全局安装
+
 ```bash
-bun install
+npm install -g gcpusage
 ```
 
-## 环境变量
+### npx（无需安装）
 
-使用前需要设置以下环境变量：
+```bash
+npx gcpusage token-full
+```
+
+### 从源码构建
+
+```bash
+git clone https://github.com/Howardzhangdqs/gcpusage.git
+cd glm-coding-plan-usage
+
+bun install
+bun run build
+# 构建产物在 dist/cli.js
+```
+
+## 配置
+
+设置环境变量（推荐）：
 
 ```bash
 export ANTHROPIC_AUTH_TOKEN="your-token-here"
-export ANTHROPIC_BASE_URL="https://open.bigmodel.cn/api/anthropic"
-# 或
 export ANTHROPIC_BASE_URL="https://api.z.ai/api/anthropic"
+# 或
+export ANTHROPIC_BASE_URL="https://open.bigmodel.cn/api/anthropic"
 ```
 
-## 使用方式
+## 使用
 
-### 默认模式（Token 通量占比）
+### 方式一：使用环境变量（推荐）
 
 ```bash
-bun run start
+# 设置 token 后直接使用
+gcpusage              # 百分比 (默认)
+gcpusage token-full   # 完整信息
+gcpusage token-used   # 已用
+gcpusage token-total  # 总量
 ```
 
-输出：
-```
-1.79%     ← 每10秒刷新
-```
-
-### Token 完整信息
+### 方式二：传入 token
 
 ```bash
-bun run start -- -m token-full
+gcpusage your-token-here
+gcpusage your-token-here token-full
 ```
 
-输出：
-```
-14.32M,800.00M,785.68M,1.79%
-```
-格式：`已用,总额,剩余,占比`，每10秒刷新
+## 命令
 
-### 其他模式
+| 命令 | 输出 | 示例 |
+|------|------|------|
+| `gcpusage` | 百分比 | `0.82` |
+| `gcpusage token-full` | 已用,总额,剩余,百分比 | `6.55M,800.00M,793.45M,0.82%` |
+| `gcpusage token-total` | Token 总量 | `800.00M` |
+| `gcpusage token-used` | 已用 Token | `6.55M` |
+| `gcpusage token-remaining` | 剩余 Token | `793.45M` |
+| `gcpusage token-percent` | 百分比 | `0.82` |
+| `gcpusage hourly` | 24 小时 Token 用量（逗号分隔） | `1000,2000,...` |
+| `gcpusage raw` | API 响应 (JSON) | `{...}` |
+| `gcpusage full` | 完整表格展示 | 表格 |
+| `gcpusage -i 5` | 每 5 秒自动刷新 | 持续输出 |
 
-```bash
-bun run start -- -m token       # Token通量占比（每10秒刷新）
-bun run start -- -m token-full  # Token已用/总额/剩余/占比（每10秒刷新）
-bun run start -- -m hourly      # 24小时每小时Token用量（逗号分隔）
-bun run start -- -m raw         # 打印完整API响应(JSON)
-bun run start -- -m full        # 完整数据可视化展示
-```
+## 选项
 
-> ⚠️ `full`、`hourly`、`raw` 模式不支持刷新，只运行一次即退出。
-
-### 命令行参数
-
-| 参数 | 说明 |
+| 选项 | 说明 |
 |------|------|
-| `-m, --mode <模式>` | 显示模式 (token/token-full/hourly/raw/full) |
-| `-i, --interval <秒>` | 刷新间隔，默认10秒 |
-| `-1, --once` | 只运行一次，不循环刷新 |
+| `<mode>` | 直接指定模式 |
+| `-m, --mode <模式>` | 指定显示模式 |
+| `-i, --interval <秒>` | 刷新间隔（设置后才会自动刷新） |
 | `-h, --help` | 显示帮助信息 |
 
-### 构建可执行文件
+## 发布
 
 ```bash
-bun run build
-```
+# 登录 npm
+npm login
 
-构建后的文件位于 `dist/cli.js`。
-
-## 示例
-
-```bash
-# 每5秒刷新一次 Token 信息
-bun run start -- -m token-full -i 5
-
-# 只运行一次查看 Token 完整信息
-bun run start -- -m token-full --once
-
-# 默认模式，只显示百分比
-bun run start
-```
-
-## 项目结构
-
-```
-.
-├── src/
-│   ├── types.ts      # 类型定义
-│   ├── utils.ts      # 工具函数
-│   ├── api.ts        # API 请求
-│   ├── display.ts    # 显示模块
-│   └── cli.ts        # 主入口
-├── dist/             # 构建输出
-├── package.json
-└── tsconfig.json
+# 发布
+npm publish
 ```
 
 ## License

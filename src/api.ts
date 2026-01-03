@@ -3,6 +3,7 @@
  */
 
 import https from 'https';
+import type { IncomingMessage } from 'http';
 import type { ApiEndpoints } from './types.js';
 import { colors } from './utils.js';
 
@@ -16,7 +17,7 @@ export const httpsRequest = <T = unknown>(
 ): Promise<T> => {
   return new Promise((resolve, reject) => {
     const parsedUrl = new URL(url);
-    const options = {
+    const options: https.RequestOptions = {
       hostname: parsedUrl.hostname,
       port: 443,
       path: parsedUrl.pathname + queryParams,
@@ -28,11 +29,11 @@ export const httpsRequest = <T = unknown>(
       },
     };
 
-    const req = https.request(options, (res) => {
+    const req = https.request(options, (res: IncomingMessage) => {
       let data = '';
 
-      res.on('data', (chunk) => {
-        data += chunk;
+      res.on('data', (chunk: Buffer) => {
+        data += chunk.toString('utf-8');
       });
 
       res.on('end', () => {

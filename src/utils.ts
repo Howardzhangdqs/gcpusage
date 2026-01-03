@@ -34,8 +34,32 @@ export const parseArgs = (): Options => {
     mode: 'token',
     interval: 10,
     once: false,
+    intervalSet: false,
   };
 
+  // 所有可用的模式名称
+  const modeNames = [
+    'token',
+    'token-full',
+    'token-total',
+    'token-used',
+    'token-remaining',
+    'token-percent',
+    'hourly',
+    'raw',
+    'full',
+  ];
+
+  // 先检查是否直接传了模式名（不带 -m）
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (!arg.startsWith('-') && modeNames.includes(arg)) {
+      options.mode = arg as DisplayMode;
+      break;
+    }
+  }
+
+  // 再解析其他选项
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     switch (arg) {
@@ -46,6 +70,7 @@ export const parseArgs = (): Options => {
       case '-i':
       case '--interval':
         options.interval = parseInt(args[++i]) || 10;
+        options.intervalSet = true;
         break;
       case '-1':
       case '--once':
@@ -64,23 +89,33 @@ export const printHelp = (): void => {
   console.log(`${colors.bright}GLM Coding Plan Usage Monitor${colors.reset}`);
   console.log('');
   console.log(`${colors.bright}用法:${colors.reset}`);
-  console.log('  bun run src/cli.ts [选项]');
-  console.log('  bun run start [选项]');
+  console.log('  gcpusage <token>              - 输出百分比');
+  console.log('  gcpusage <token> [选项]       - 使用指定选项');
+  console.log('  gcpusage [选项]              - 使用环境变量中的 token');
   console.log('');
   console.log(`${colors.bright}选项:${colors.reset}`);
   console.log(`  -m, --mode <模式>    显示模式 (默认: token)`);
-  console.log(`                       ${colors.cyan}token${colors.reset}       - Token通量占比`);
-  console.log(`                       ${colors.cyan}token-full${colors.reset} - Token已用/总额/剩余/占比`);
-  console.log(`                       ${colors.cyan}hourly${colors.reset}      - 24小时每小时Token用量`);
-  console.log(`                       ${colors.cyan}raw${colors.reset}         - 打印完整API响应(JSON)`);
-  console.log(`                       ${colors.cyan}full${colors.reset}        - 完整数据可视化展示`);
-  console.log(`  -i, --interval <秒>  刷新间隔，秒 (默认: 10)`);
+  console.log(`                       ${colors.cyan}token${colors.reset}           - Token百分比`);
+  console.log(`                       ${colors.cyan}token-full${colors.reset}     - 已用,总额,剩余,百分比`);
+  console.log(`                       ${colors.cyan}token-total${colors.reset}    - Token总量`);
+  console.log(`                       ${colors.cyan}token-used${colors.reset}     - 已用Token`);
+  console.log(`                       ${colors.cyan}token-remaining${colors.reset} - 剩余Token`);
+  console.log(`                       ${colors.cyan}token-percent${colors.reset}  - Token百分比(与token相同)`);
+  console.log(`                       ${colors.cyan}hourly${colors.reset}         - 24小时每小时Token用量`);
+  console.log(`                       ${colors.cyan}raw${colors.reset}            - 打印完整API响应(JSON)`);
+  console.log(`                       ${colors.cyan}full${colors.reset}           - 完整数据可视化展示`);
+  console.log(`  -i, --interval <秒>  刷新间隔，秒 (设置后才会自动刷新)`);
   console.log(`  -1, --once           只运行一次，不循环刷新`);
   console.log(`  -h, --help           显示此帮助信息`);
   console.log('');
   console.log(`${colors.bright}环境变量:${colors.reset}`);
-  console.log(`  ANTHROPIC_AUTH_TOKEN  认证令牌 (必需)`);
-  console.log(`  ANTHROPIC_BASE_URL    API基础URL (必需)`);
+  console.log(`  ANTHROPIC_AUTH_TOKEN  认证令牌 (可选，优先级低于命令行参数)`);
+  console.log(`  ANTHROPIC_BASE_URL    API基础URL (可选，默认: https://api.z.ai/api/anthropic)`);
+  console.log('');
+  console.log(`${colors.bright}示例:${colors.reset}`);
+  console.log(`  gcpusage your-token-here`);
+  console.log(`  gcpusage your-token-here -m token-full`);
+  console.log(`  gcpusage your-token-here -i 5`);
 }
 
 /**
@@ -135,21 +170,6 @@ export const readEnv = (): { baseUrl: string; authToken: string } => {
   }
 
   return { baseUrl, authToken };
-}
-
-/**
- * 渲染进度条
- */
-export const renderProgressBar = (percentage: number, width = 30): string => {
-  const filled = Math.round((percentage / 100) * width);
-  const empty = width - filled;
-
-  let color = colors.green;
-  if (percentage >= 80) color = colors.red;
-  else if (percentage >= 50) color = colors.yellow;
-
-  const bar = color + '█'.repeat(filled) + colors.dim + '░'.repeat(empty) + colors.reset;
-  return `[${bar}] ${percentage.toFixed(1)}%`;
 }
 
 /**
