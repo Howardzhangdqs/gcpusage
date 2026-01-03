@@ -23,3 +23,5 @@ Thumbs.db
 .env.local
 
 bun.lock
+
+docs/
