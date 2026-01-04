@@ -1,5 +1,8 @@
 src/
+test/
+scripts/
+
 *.ts
-bun.lockb
+bun.lock
 .env
 .DS_Store
