@@ -31,6 +31,8 @@ export interface QuotaLimit {
   remaining?: number;
   usageDetails?: UsageDetail[];
   nextResetTime?: number;
+  unit?: number;
+  number?: number;
 }
 
 // 使用详情

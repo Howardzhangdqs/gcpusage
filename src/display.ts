@@ -19,7 +19,14 @@ export const getTokenLimitInfo = (quotaData: { limits?: QuotaLimit[] }) => {
  */
 export const getTokenPercentage = (quotaData: { limits?: QuotaLimit[] }): number => {
   const limit = getTokenLimitInfo(quotaData);
-  if (!limit || !limit.usage) return 0;
+  if (!limit) return 0;
+  
+  if (limit.percentage !== undefined) {
+    return limit.percentage;
+  }
+  
+  if (!limit.usage || limit.usage <= 0) return 0;
+  
   const currentValue = limit.currentValue || 0;
   return Math.max(Math.min(currentValue / limit.usage * 100, 100), 0);
 };
@@ -53,7 +60,15 @@ export const displayTokenFull = (quotaData: { limits?: QuotaLimit[] }): void => 
   const used = limit.currentValue || 0;
   const total = limit.usage || 0;
   const remaining = limit.remaining || 0;
-  const percentage = Math.max(Math.min(used / total * 100, 100), 0);
+  
+  let percentage: number;
+  if (limit.percentage !== undefined) {
+    percentage = limit.percentage;
+  } else if (total > 0) {
+    percentage = Math.max(Math.min(used / total * 100, 100), 0);
+  } else {
+    percentage = 0;
+  }
 
   console.log(`${formatNumber(used)},${formatNumber(total)},${formatNumber(remaining)},${percentage.toFixed(2)}%`);
 };
@@ -210,7 +225,7 @@ export const displayByMode = (
 ): void => {
   switch (mode) {
     case 'token':
-      displayTokenUsage(quotaData);
+      displayTokenSimple(quotaData);
       break;
     case 'hourly':
       if (hourlyTokens) {
@@ -243,7 +258,7 @@ export const displayFull = (rawData: Record<string, unknown>): void => {
   const data = rawData as {
     modelUsage?: { data?: { x_time?: string[]; tokensUsage?: (number | null)[]; modelCallCount?: (number | null)[]; totalUsage?: { totalModelCallCount?: number; totalTokensUsage?: number } } };
     toolUsage?: { data?: { x_time?: string[]; networkSearchCount?: (number | null)[]; totalUsage?: { totalNetworkSearchCount?: number; toolDetails?: { modelName: string; totalUsageCount: number }[] } } };
-    quotaLimit?: { data?: { limits?: { type: string; percentage: number; currentValue?: number; usage?: number; remaining?: number; nextResetTime?: number }[] } };
+    quotaLimit?: { data?: { limits?: Array<{ type: string; percentage: number; currentValue?: number; usage?: number; remaining?: number; nextResetTime?: number; unit?: number; number?: number }> } };
   };
 
   // ========== 1. 配额限制 ==========
@@ -264,10 +279,36 @@ export const displayFull = (rawData: Record<string, unknown>): void => {
   limits.reverse().forEach((limit) => {
     const isToken = limit.type === 'TOKENS_LIMIT';
     const label = isToken ? '📊 5小时 Token' : '📦 1个月 MCP';
-    const percentage = Math.max(Math.min((limit.currentValue || 0) / limit.usage! * 100 || 0, 100), 0).toFixed(2) + "%";
-    const used = isToken ? `${((limit.currentValue || 0) / 1000000).toFixed(2)}M` : `${limit.currentValue}`;
-    const total = isToken ? `${(limit.usage! / 1000000).toFixed(0)}M` : `${limit.usage}`;
-    const remaining = isToken ? `${(limit.remaining! / 1000000).toFixed(2)}M` : `${limit.remaining}`;
+    
+    let percentage: string;
+    let used: string;
+    let total: string;
+    let remaining: string;
+    
+    if (isToken) {
+      percentage = (limit.percentage || 0).toFixed(2) + "%";
+      
+      if (limit.currentValue !== undefined && limit.usage !== undefined && limit.remaining !== undefined) {
+        used = `${((limit.currentValue || 0) / 1000000).toFixed(2)}M`;
+        total = `${((limit.usage || 0) / 1000000).toFixed(0)}M`;
+        remaining = `${((limit.remaining || 0) / 1000000).toFixed(2)}M`;
+      } else {
+        used = '-';
+        total = '-';
+        remaining = '-';
+      }
+    } else {
+      const safeUsage = limit.usage || 0;
+      const safeCurrentValue = limit.currentValue || 0;
+      const calculatedPercentage = safeUsage > 0 
+        ? Math.max(Math.min(safeCurrentValue / safeUsage * 100, 100), 0)
+        : 0;
+      
+      percentage = calculatedPercentage.toFixed(2) + "%";
+      used = `${safeCurrentValue}`;
+      total = `${safeUsage}`;
+      remaining = `${limit.remaining || 0}`;
+    }
 
     // 格式化重置时间
     let resetTime = '-';
