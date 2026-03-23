@@ -4,7 +4,7 @@
   "description": "GLM Coding Plan usage monitor CLI tool",
   "type": "module",
   "bin": {
-    "gcpusage": "./dist/cli.js"
+    "gcpusage": "dist/cli.js"
   },
   "scripts": {
     "start": "bun run src/cli.ts",
@@ -12,9 +12,16 @@
     "build": "bun build src/cli.ts --outdir dist --target node && bun scripts/build.js && chmod +x dist/cli.js",
     "dev": "bun --watch src/cli.ts"
   },
-  "keywords": ["glm", "usage", "monitor", "cli"],
+  "keywords": [
+    "glm",
+    "usage",
+    "monitor",
+    "cli"
+  ],
   "license": "MIT",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "cli-table3": "^0.6.5"
   },
