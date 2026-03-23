@@ -1,6 +1,6 @@
 {
   "name": "gcpusage",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "GLM Coding Plan usage monitor CLI tool",
   "type": "module",
   "bin": {
